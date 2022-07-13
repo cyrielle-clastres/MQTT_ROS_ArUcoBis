@@ -81,19 +81,19 @@ Il vous faudra ensuite changer le fichier de configuration `config/demo_params.y
 ## **Construire l'application sur Unity**
 Avant de construire l'application il nous faut récupérer l'adresse IP de notre environnement Ubuntu. Pour cela il vous suffit d'aller dans votre environnement et de tapper la commande suivante : `hostname -I`. Récupérez cette adresse IP et copiez la dans l'objet M2MQTT, dans le champ Brocker Address de Unity.  
 Vérifiez que la case Auto Connect est bien cochée.  
-![image](../MQTT_ROS_ArUcoBis/Images/MQTT%20Settings.jpg)  
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/MQTT%20Settings.jpg)  
 Puis, allez dans File > Build Settings > Universal Window Platform. Si vous n'avez pas installé le module, faites l'installation et rechargez le projet. Sélectionnez les paramètres ci-dessous et cliquez sur Switch Platform.  
 Laissez le projet recharger et, une fois fait, cliquez sur Build. Sélectionnez un dossier approprié comme Buils et lancez la construction.
 
 ## **Construire et déployer l'application sur Visual Studio 2019**
 Pour construire l'application et la déployer sur Visual Stuido, vous aurez besoin de l'adresse IP du casque HoloLens. Celle-ci est disponibe dans Paramètres > Mise à jour et sécurité > Pour les développeurs > Wi-Fi.  
-![image](../MQTT_ROS_ArUcoBis/Images/Mode%20d%C3%A9veloppeur%20casque.jpg)
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/Mode%20d%C3%A9veloppeur%20casque.jpg)
 S'il s'agit de la première fois que le casque et l'ordinateur se connectent, cliquez sur Coupler. Un code apparaît. Restez sur ce menu jusqu'à ce qu'on vous le demande.
 Choisir les modes Release et ARM64 pour construire l'application. Sélectionner également Ordinateur distant.  
-![image](../MQTT_ROS_ArUcoBis/Images/ARM64.jpg)
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/ARM64.jpg)
 Avant de lancer la contruction et le déploiement, allez dans Déboguer > Propriétés de débogage > Propriétés de configuration > Débogage. Mettez l'adresse IP du casque HoloLens dans le champ "Nom de l'ordinateur".  
-![image](../MQTT_ROS_ArUcoBis/Images/Propri%C3%A9t%C3%A9s%20de%20d%C3%A9bogage.png)
-![image](../MQTT_ROS_ArUcoBis/Images/D%C3%A9bogage%20IP.png)
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/Propri%C3%A9t%C3%A9s%20de%20d%C3%A9bogage.png)
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/D%C3%A9bogage%20IP.png)
 Lancez la construction en allant dans Déboguer > Exécuter sans débogage. S'il s'agit de la première connexion entre le casque et l'ordinateur, une page va s'ouvrir demandant le code de couplage du casque.
 
 # **Problèmes possibles** 
