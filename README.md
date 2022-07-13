@@ -62,7 +62,7 @@ Suivez les informations décrites [ici](http://wiki.ros.org/melodic/Installation
 Il vous faut installer Mosquitto. Pour cela, vous pouvez utiliser la ligne de commande suivante : `sudo apt-get install mosquitto`.  
 Il faut également installer mosquitto_sub et mosquitto_pub qui permettent la communication : `sudo apt-get install mosquitto-clients`.  
 Pour un fonctionnement optimal, il vous faut également créer un fichier dans /etc/mosquitto/config.d s'appellant default.conf, comme suit. Pour cela vous pouvez utiliser `vim`.
-![image](../../Unity/MQTT_ROS_ArUcoBis/Images/Config%20mosquitto.png)  
+![image](https://github.com/cyrielle-clastres/MQTT_ROS_ArUcoBis/blob/main/Images/Config%20mosquitto.png)  
 Pour lancer mosquitto, utilisez la commande suivante : `mosquitto -v -c /etc/mosquitto/config.d/default.conf`.  
 Pour arrêter mosquitto, utilisez la commande : `sudo service mosquitto stop`.
 
