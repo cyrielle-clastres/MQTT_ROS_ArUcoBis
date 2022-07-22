@@ -64,7 +64,6 @@ namespace M2MqttUnity
         /// </summary>
         protected MqttClient client;
         protected GameObject cube;
-        protected GameObject triedre;
 
         private List<MqttMsgPublishEventArgs> messageQueue1 = new List<MqttMsgPublishEventArgs>();
         private List<MqttMsgPublishEventArgs> messageQueue2 = new List<MqttMsgPublishEventArgs>();
@@ -218,7 +217,6 @@ namespace M2MqttUnity
         /// </summary>
         protected virtual void Update()
         {
-            triedre = GameObject.Find("Triedre Monde");
             ProcessMqttEvents();
         }
 

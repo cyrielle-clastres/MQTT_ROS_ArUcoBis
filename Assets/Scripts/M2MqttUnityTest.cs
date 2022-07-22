@@ -52,29 +52,39 @@ namespace M2MqttUnity.Examples
         public Button disconnectButton;
         public Button testPublishButton;
         public Button clearButton;
-        public PlacementCube scriptinverse;
-        public Blob script_robot;
-        public RobotVirtuel script_robot_virtuel;
+
+
+        public PlacementCube placement_cube;
+        public RobotReel robot_reel;
+        public RobotVirtuel robot_virtuel;
+        public ValidationTrajectoire validation_trajectoire;
+        public MatricesOutils matrices_outils;
         public GameObject triedre_effecteur;
         public GameObject triedre_robot_virtuel;
 
         private List<string> eventMessages = new List<string>();
         private bool updateUI = false;
         private int count = 0;
+        
+        /*
+         * PublishPosition est appelée lorsque le cube est déplacé.
+         * Cette fonction permet de récupérer les coordonnées du cube dans l'espace indirect. Elle envoie la position et la rotation dans l'espace direct du robot
+         * sous forme d'un message Pose de ROS au serveur MQTT présent sur Ubuntu.
+         */
         public void PublishPosition()
         {
-            count++;
-            if ((cube != null) && (count % 2 == 0) && (triedre != null) && (scriptinverse.fixe == 2))
+            //count++;
+            if ((cube != null) && (count % 2 == 0) && (placement_cube.fixe == 2))
             {
-                //On calcule la position du cube dans le repère indirect
+                // On calcule la position du cube dans le repère indirect
                 Matrix4x4 m = Matrix4x4.TRS(cube.transform.position, cube.transform.rotation, new Vector3(1, 1, 1));
-                Matrix4x4 cube_robot = scriptinverse.mat_monde_robot * m;
+                Matrix4x4 cube_robot = placement_cube.mat_monde_robot * m;
 
-                //On calcule la position du cube dans le repère direct de la table
+                // On calcule la position du cube dans le repère direct de la table
                 Vector3 Point = new Vector3(cube_robot[0,3], cube_robot[2,3], cube_robot[1,3]);
                 Quaternion Quaternion = new Quaternion(-cube_robot.rotation.x, -cube_robot.rotation.z, -cube_robot.rotation.y, cube_robot.rotation.w);
 
-                //On envoie la position et la rotation du cube dans le repère direct à MQTT qui fera la transmission à ROS
+                // On envoie la position et la rotation du cube dans le repère direct à MQTT qui fera la transmission à ROS
                 String pos = JsonUtility.ToJson(Point);
                 String rot = JsonUtility.ToJson(Quaternion);
                 String final = "{\"position\":" + pos + " , \"orientation\":" + rot + "}";
@@ -82,23 +92,52 @@ namespace M2MqttUnity.Examples
             }
         }
 
+        /*
+         * PublishTriedrePosition est appelée lorsque le trièdre associé au robot virtuel est déplacé.
+         * Cette fonction permet de récupérer les coordonnées du trièdre dans l'espace indirect. Elle envoie la position et la rotation dans l'espace direct du robot
+         * sous forme d'un message Pose de ROS au serveur MQTT présent sur Ubuntu.
+         * Elle envoie également les positions des joints du robot virtuel dans le but de trouver la solution pour la position du trièdre la plus proche de la position
+         * actuelle.
+         */
         public void PublishTriedrePosition()
         {
-            if ((count % 2 == 0) && (scriptinverse.fixe == 2) && (script_robot_virtuel.SetJoints == true) && (script_robot_virtuel.SetTriedre == true))
+            if ((count % 2 == 0) && (placement_cube.fixe == 2) && (robot_virtuel.SetJoints == true) && (robot_virtuel.SetTriedre == true))
             {
-                //On calcule la position du triedre dans le repère indirect
-                Matrix4x4 m = Matrix4x4.TRS(triedre_robot_virtuel.transform.position, triedre_robot_virtuel.transform.rotation, new Vector3(1, 1, 1));
-                Matrix4x4 triedre_robot = scriptinverse.mat_monde_robot * m;
+                // On envoie la position actuelle des joints
+                JointState joint = new JointState();
+                joint.position = robot_virtuel.GetPosition();
+                joint.velocity = new float[6];
+                joint.effort = new float[6];
+                String position_robot = JsonUtility.ToJson(joint);
+                client.Publish("joint_state_virtual", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(position_robot)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
 
-                //On calcule la position du cube dans le repère direct de la table
+                // On calcule la position du triedre dans le repère indirect
+                Matrix4x4 m = Matrix4x4.TRS(triedre_robot_virtuel.transform.position, triedre_robot_virtuel.transform.rotation, new Vector3(1, 1, 1));
+                Matrix4x4 triedre_robot = placement_cube.mat_monde_robot * m;
+                triedre_robot = triedre_robot * matrices_outils.mat_feutre_tool0;
+                triedre_robot = triedre_robot * matrices_outils.mat_tool0_flange;
+
+                // On calcule la position du trièdre dans le repère direct de la table
                 Vector3 Point = new Vector3(triedre_robot[0, 3], triedre_robot[2, 3], triedre_robot[1, 3]);
                 Quaternion Quaternion = new Quaternion(-triedre_robot.rotation.x, -triedre_robot.rotation.z, -triedre_robot.rotation.y, triedre_robot.rotation.w);
 
-                //On envoie la position et la rotation du cube dans le repère direct à MQTT qui fera la transmission à ROS
+                // On envoie la position et la rotation du trièdre dans le repère direct à MQTT qui fera la transmission à ROS
                 String pos = JsonUtility.ToJson(Point);
                 String rot = JsonUtility.ToJson(Quaternion);
                 String final = "{\"position\":" + pos + " , \"orientation\":" + rot + "}";
                 client.Publish("robot_pose", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(final)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
+            }
+        }
+
+        public void PublishTrajectoire()
+        {
+            if(robot_virtuel.TrajectoireFinie == true)
+            {
+                robot_virtuel.TrajectoireEnCours = true;
+                String trajectoire_robot = JsonUtility.ToJson(robot_virtuel.trajectoire);
+                client.Publish("trajectoire_robot", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(trajectoire_robot)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
+                robot_virtuel.SetJoints = false;
+                robot_virtuel.SetTriedre = false;
             }
         }
 
@@ -166,16 +205,28 @@ namespace M2MqttUnity.Examples
             }
         }
 
+        /*
+         * SubscribeTopics est appelée lorsque le Casque se connecte à Ubuntu.
+         * Cette fonction permet de récupérer les messages postés sur les différents topics.
+         */
         protected override void SubscribeTopics()
         {
             client.Subscribe(new string[] { "position/mqtt" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
             client.Subscribe(new string[] { "position_robot" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+            client.Subscribe(new string[] { "position_robot_virtuel_casque" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+            client.Subscribe(new string[] { "trajectoire_finie" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
         }
 
+        /*
+         * UnsubscribeTopics est appelée lorsque le Casque se déconnecte à Ubuntu.
+         * Cette fonction permet d'arrêter de récupérer les messages postés sur les différents topics.
+         */
         protected override void UnsubscribeTopics()
         {
             client.Unsubscribe(new string[] { "position/mqtt" });
             client.Unsubscribe(new string[] { "position_robot" });
+            client.Unsubscribe(new string[] { "position_robot_virtuel_casque" });
+            client.Unsubscribe(new string[] { "trajectoire_finie" });
         }
 
         protected override void OnConnectionFailed(string errorMessage)
@@ -248,60 +299,95 @@ namespace M2MqttUnity.Examples
             base.Start();
         }
 
+        /*
+         * DecodeMessage est appelée à chaque frame.
+         * Cette fonction permet de décoder les messages reçus sur les différents topics auxquels on est abonné.
+         * Elle permet de récupérer la position de l'effecteur, la position des joints du robot et également les positions calculées pour le robot virtuel.
+         */
         protected override void DecodeMessage(string topic, byte[] message)
         {
+            // On récupère le message et lel topic sur lequel il a été publié
             string msg = System.Text.Encoding.UTF8.GetString(message);
             StoreMessage(msg);
             if (count % 2 == 0)
             {
+                // On positionne le trièdre de l'effecteur et le trièdre associé au robot virtuel à l'effeteur du robot
                 if (topic == "position/mqtt")
                 {
+                    // On transforme le message en un objet pour récupérer tous les champs
                     PosRot PositionAndRotation = JsonUtility.FromJson<PosRot>(msg);
-                    if ((triedre_effecteur != null) && (scriptinverse.fixe == 2))
+                    if ((triedre_effecteur != null) && (placement_cube.fixe == 2))
                     {
-                        //On récupère les coordonnées envoyées par ROS et on les mets dans le repère indirect de la table
+                        // On récupère les coordonnées envoyées par ROS et on les mets dans le repère indirect de la table
                         triedre_effecteur.transform.position = new Vector3(PositionAndRotation.position.x, PositionAndRotation.position.z, PositionAndRotation.position.y);
                         triedre_effecteur.transform.rotation = new Quaternion(-PositionAndRotation.orientation.x, -PositionAndRotation.orientation.z, -PositionAndRotation.orientation.y, PositionAndRotation.orientation.w);
 
-                        //On calcule les coordonnées indirectes dans le reepère monde
+                        // On calcule les coordonnées indirectes dans le repère monde
                         Matrix4x4 m = Matrix4x4.TRS(triedre_effecteur.transform.position, triedre_effecteur.transform.rotation, new Vector3(1, 1, 1));
-                        Matrix4x4 triedre_monde = scriptinverse.mat_robot_monde * m;
+                        Matrix4x4 triedre_monde = placement_cube.mat_robot_monde * m;
 
-                        //On donne les coordonnées à l'objet
+                        // On donne les coordonnées à l'objet
                         triedre_effecteur.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
                         triedre_effecteur.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
                         
-                        if(script_robot_virtuel.SetTriedre == false)
+                        // On donne également les coordonnées au trièdre associé au robot virtuel si cela n'a pas déjà été fait
+                        if(((robot_virtuel.SetTriedre == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetTriedre == true) && (robot_virtuel.TrajectoireEnCours == true)))
                         {
-                            script_robot_virtuel.triedre_robot_virtuel.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
-                            script_robot_virtuel.triedre_robot_virtuel.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
-                            script_robot_virtuel.SetTriedre = true;
+                            robot_virtuel.triedre_robot_virtuel.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
+                            Vector3 rot_triedre = triedre_monde.rotation.eulerAngles;
+                            //rot_triedre = new Vector3(rot_triedre.x, rot_triedre.y + 180, rot_triedre.z + 90);
+                            //robot_virtuel.triedre_robot_virtuel.transform.rotation = Quaternion.Euler(rot_triedre);
+                            robot_virtuel.triedre_robot_virtuel.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
+                            // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.
+                            robot_virtuel.SetTriedre = true;
                         }
                     }
                 }
-            }
-            if(count % 2 == 0) {
+
+                // On récupère la position des Joints du robot réel et on applique ces valeurs au robot virtuel
                 if (topic == "position_robot")
                 {
+                    // On transforme le message en objet pour récupérer tous les champs
                     JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
-                    script_robot.UpdatePosition(Joint_State.position);
-                    if(script_robot_virtuel.SetJoints == false)
+
+                    // On donne les positions du robot au robot virtuel
+                    robot_reel.UpdatePosition(Joint_State.position);
+
+                    // On donne les positions au robot virtuel se déplaçant en virtuel si cela n'a pas déjà été fait
+                    if ((robot_virtuel.SetJoints == false) && (robot_virtuel.TrajectoireEnCours == false))
                     {
-                        script_robot_virtuel.UpdatePosition(Joint_State.position);
-                        script_robot_virtuel.SetJoints = true;
+                        robot_virtuel.UpdatePosition(Joint_State.position);
+                        // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.
+                        robot_virtuel.SetJoints = true;
                     }
                 }
+
+                // On récupère les positions des Joints calculées selon la position de l'effecteur demandée
                 if (topic == "position_robot_virtuel_casque")
                 {
-                    JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
-                    script_robot_virtuel.UpdatePosition(Joint_State.position);
-                }
-                else if (topic == "M2MQTT_Unity/test")
-                {
-                    if (autoTest)
+                    // On crée la trajectoire de points
+                    if (robot_virtuel.TrajectoireFinie == false)
                     {
-                        autoTest = false;
-                        Disconnect();
+                        // On transforme le message en objet pour récupérer tous les champs
+                        JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
+
+                        // On donne les positions calculées au robot virtuel
+                        robot_virtuel.UpdatePosition(Joint_State.position);
+                        if (validation_trajectoire.SetPremierPoint == true)
+                        {
+                            JointTrajectoryPoint point = new JointTrajectoryPoint();
+                            point.positions = Joint_State.position;
+                            robot_virtuel.point.Add(point);
+                        }
+                    }
+                }
+
+                // La trajectoire est finie, on peut à nouveau déplacer le trièdre
+                if (topic == "trajectoire_finie")
+                {
+                    if(robot_virtuel.TrajectoireEnCours == true)
+                    {
+                        validation_trajectoire.FinTrajectoire();
                     }
                 }
             }
