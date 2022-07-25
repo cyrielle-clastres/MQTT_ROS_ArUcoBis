@@ -77,7 +77,7 @@ public class RobotVirtuel : MonoBehaviour
     public void UpdatePosition(float[] position)
     {
         // On attribue au joint 2 sa position.
-        if (SetJoints == false)
+        if (((SetJoints == false) && (TrajectoireEnCours == false)) || ((SetJoints == true) && (TrajectoireEnCours == true)))
         {
             var joint1XDrive = m_JointArticulationBodies[2].xDrive;
             joint1XDrive.target = (float)position[0] * Mathf.Rad2Deg;
@@ -112,7 +112,7 @@ public class RobotVirtuel : MonoBehaviour
         else
         {
             var joint1XDrive = m_JointArticulationBodies[0].xDrive;
-            joint1XDrive.target = (float)position[0] * Mathf.Rad2Deg + 180;
+            joint1XDrive.target = (float)position[0] * Mathf.Rad2Deg;
             m_JointArticulationBodies[0].xDrive = joint1XDrive;
 
             // On attribue au joint 1 sa position.

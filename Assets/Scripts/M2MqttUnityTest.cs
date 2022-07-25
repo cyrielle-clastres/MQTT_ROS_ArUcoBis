@@ -114,8 +114,10 @@ namespace M2MqttUnity.Examples
                 // On calcule la position du triedre dans le repère indirect
                 Matrix4x4 m = Matrix4x4.TRS(triedre_robot_virtuel.transform.position, triedre_robot_virtuel.transform.rotation, new Vector3(1, 1, 1));
                 Matrix4x4 triedre_robot = placement_cube.mat_monde_robot * m;
+                // Pour le calcul du modèle inverse qui se fait dans la base link avec le flange
                 triedre_robot = triedre_robot * matrices_outils.mat_feutre_tool0;
                 triedre_robot = triedre_robot * matrices_outils.mat_tool0_flange;
+                triedre_robot = matrices_outils.mat_base_link_base * triedre_robot;
 
                 // On calcule la position du trièdre dans le repère direct de la table
                 Vector3 Point = new Vector3(triedre_robot[0, 3], triedre_robot[2, 3], triedre_robot[1, 3]);
@@ -136,8 +138,8 @@ namespace M2MqttUnity.Examples
                 robot_virtuel.TrajectoireEnCours = true;
                 String trajectoire_robot = JsonUtility.ToJson(robot_virtuel.trajectoire);
                 client.Publish("trajectoire_robot", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(trajectoire_robot)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
-                robot_virtuel.SetJoints = false;
-                robot_virtuel.SetTriedre = false;
+                robot_virtuel.SetJoints = true;
+                robot_virtuel.SetTriedre = true;
             }
         }
 
@@ -306,7 +308,7 @@ namespace M2MqttUnity.Examples
          */
         protected override void DecodeMessage(string topic, byte[] message)
         {
-            // On récupère le message et lel topic sur lequel il a été publié
+            // On récupère le message et le topic sur lequel il a été publié
             string msg = System.Text.Encoding.UTF8.GetString(message);
             StoreMessage(msg);
             if (count % 2 == 0)
@@ -334,7 +336,7 @@ namespace M2MqttUnity.Examples
                         if(((robot_virtuel.SetTriedre == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetTriedre == true) && (robot_virtuel.TrajectoireEnCours == true)))
                         {
                             robot_virtuel.triedre_robot_virtuel.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
-                            Vector3 rot_triedre = triedre_monde.rotation.eulerAngles;
+                            //Vector3 rot_triedre = triedre_monde.rotation.eulerAngles;
                             //rot_triedre = new Vector3(rot_triedre.x, rot_triedre.y + 180, rot_triedre.z + 90);
                             //robot_virtuel.triedre_robot_virtuel.transform.rotation = Quaternion.Euler(rot_triedre);
                             robot_virtuel.triedre_robot_virtuel.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
@@ -354,7 +356,7 @@ namespace M2MqttUnity.Examples
                     robot_reel.UpdatePosition(Joint_State.position);
 
                     // On donne les positions au robot virtuel se déplaçant en virtuel si cela n'a pas déjà été fait
-                    if ((robot_virtuel.SetJoints == false) && (robot_virtuel.TrajectoireEnCours == false))
+                    if (((robot_virtuel.SetJoints == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetJoints == true) && (robot_virtuel.TrajectoireEnCours == true)))
                     {
                         robot_virtuel.UpdatePosition(Joint_State.position);
                         // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.

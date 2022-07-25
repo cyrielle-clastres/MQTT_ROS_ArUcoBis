@@ -31,6 +31,7 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
     // Les boutons qui gèrent l'envoi de trajectoire
     protected GameObject button_valider_trajectoire;
     protected GameObject button_premier_point;
+    protected GameObject button_annuler_trajectoire;
 
     // Les différents trièdres de notre espace
     private GameObject triedre_table_transrot;
@@ -70,6 +71,9 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
             // On permet le déplacement du robot virtuel et de son trièdre en bougeant le robot réel
             robot_virtuel.SetTriedre = false;
             robot_virtuel.SetJoints = false;
+
+            // On affiche le robot virtuel pour aider à la calibration
+            ur3e_deplacement_virtuel.SetActive(true);
         }
     }
 
@@ -93,6 +97,7 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
         buttons_translation.SetActive(false);
         button_valider_trajectoire.SetActive(false);
         button_premier_point.SetActive(false);
+        button_annuler_trajectoire.SetActive(false);
         triedre_table_calib.SetActive(false);
         triedre_table_transrot.SetActive(false);
         triedre_effecteur.SetActive(false);
@@ -106,7 +111,7 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
         ur3e_deplacement_virtuel.SetActive(false);
         triedre_robot_virtuel.SetActive(false);
 
-        // On permet le déplacement du robot virtuel et de son trièdre en bougeant le robot réel
+        // On ne permet plus le déplacement du robot virtuel et de son trièdre en bougeant le robot réel
         robot_virtuel.SetTriedre = false;
         robot_virtuel.SetJoints = false;
     }
@@ -159,6 +164,7 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
         triedre_robot_virtuel = GameObject.Find("Triedre robot virtuel");
         button_valider_trajectoire = GameObject.Find("Bouton valider trajectoire");
         button_premier_point = GameObject.Find("Bouton premier point");
+        button_annuler_trajectoire = GameObject.Find("Bouton annuler trajectoire");
 
         // On désactive les objets non nécessaires au début de l'application :
         // - les boutons
@@ -167,7 +173,7 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
             buttons_translation.SetActive(false);
         }
 
-        if(button_valider_trajectoire != null)
+        if (button_valider_trajectoire != null)
         {
             button_valider_trajectoire.SetActive(false);
         }
@@ -175,6 +181,11 @@ public class Affichage : MonoBehaviour , IMixedRealityTouchHandler
         if (button_premier_point != null)
         {
             button_premier_point.SetActive(false);
+        }
+
+        if (button_annuler_trajectoire != null)
+        {
+            button_annuler_trajectoire.SetActive(false);
         }
 
         // - les trièdres
