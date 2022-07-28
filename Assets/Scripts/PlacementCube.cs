@@ -40,23 +40,13 @@ public class PlacementCube : MonoBehaviour
     // Le bouton qui permet de "défixer" le trièdre de la table
     protected GameObject button_fixe;
     // Les boutons qui permetend de bouger le trièdre de la table
-    protected GameObject six_buttons;
+    protected GameObject buttons_translation_rotation;
     // Le bouton qui permet de valider la trajectoire du robot
     protected GameObject button_valider_trajectoire;
     // Le bouton qui permet de valider le premier point de la trajectoire
     protected GameObject button_premier_point;
     // Le bouton qui permet d'annuler le placement du premier point et la trajectoire tracée
     protected GameObject button_annuler_trajectoire;
-
-    // Le robot virtuel qui bouge selon les déplacements du robot réel
-    [SerializeField]
-    public GameObject ur3e;
-    public GameObject ur3e_robot { get => ur3e; set => ur3e = value; }
-
-    // Le robot qui bouge selon le déplacement virtuel de son effecteur, visuellement représenté par un trièdre
-    [SerializeField]
-    public GameObject ur3e_deplacement_virtuel;
-    public GameObject ur3e_robot_deplacement_virtuel { get => ur3e_deplacement_virtuel; set => ur3e_deplacement_virtuel = value; }
 
     // Le script qui permet de faire bouger le robot virtuel selon les déplacement du robot réel (nécessaire pour ancrer le robot virtuel à une place précise)
     public RobotReel robot_reel;
@@ -90,10 +80,8 @@ public class PlacementCube : MonoBehaviour
         // Recherche des objets
         triedre_feuille = GameObject.Find("Triedre feuille");
         triedre_table = GameObject.Find("Triedre table");
-        button_fixe = GameObject.Find("Bouton defixer table");
+        button_fixe = GameObject.Find("Boutons defixer table");
         triedre_robot = GameObject.Find("Triedre Robot");
-        ur3e = GameObject.Find("ur3e_robot");
-        ur3e_deplacement_virtuel = GameObject.Find("ur3e_robot_unity2ROS");
         button_valider_trajectoire = GameObject.Find("Bouton valider trajectoire");
         button_premier_point = GameObject.Find("Bouton premier point");
         button_annuler_trajectoire = GameObject.Find("Bouton annuler trajectoire");
@@ -116,7 +104,7 @@ public class PlacementCube : MonoBehaviour
         triedre_haut_droite = GameObject.Find("Triedre haut droite");
         triedre_bas_gauche = GameObject.Find("Triedre bas gauche");
         triedre_bas_droite = GameObject.Find("Triedre bas droite");
-        six_buttons = GameObject.Find("Boutons translation");
+        buttons_translation_rotation = GameObject.Find("Boutons translation et rotation");
 
         // Calcul de la position centrale et de la rotation des ArUcos.
         if ((triedre_haut_gauche != null) && (triedre_haut_droite != null) && (triedre_bas_gauche != null) && (triedre_bas_droite != null))
@@ -207,10 +195,10 @@ public class PlacementCube : MonoBehaviour
         }
 
         // On place les boutons de translation de sorte à ce qu'ils soient proches du trièdre de la table et bien orientés pour l'utilisateur
-        else if ((fixe == 1)&&(six_buttons != null))
+        else if ((fixe == 1)&&(buttons_translation_rotation != null))
         {
-            six_buttons.transform.position = pos - directionu1.normalized * 1.0f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
-            six_buttons.transform.rotation = mat_tablecalib_monde.rotation;
+            buttons_translation_rotation.transform.position = pos - directionu1.normalized * 1.0f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
+            buttons_translation_rotation.transform.rotation = mat_tablecalib_monde.rotation;
 
             // Matrice correspondant au déplacement table monde
             mat_table_monde = mat_table_tablecalib * mat_tablecalib_monde;
