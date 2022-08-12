@@ -55,16 +55,16 @@ namespace M2MqttUnity.Examples
 
 
         public PlacementCube placement_cube;
-        public RobotReel robot_reel;
         public RobotVirtuel robot_virtuel;
+        public Menu menu;
         public ValidationTrajectoire validation_trajectoire;
         public MatricesOutils matrices_outils;
+        public Affichage affichage;
         public GameObject triedre_effecteur;
-        public GameObject triedre_robot_virtuel;
+        public GameObject cube;
 
         private List<string> eventMessages = new List<string>();
         private bool updateUI = false;
-        private int count = 0;
         
         /*
          * PublishPosition est appelée lorsque le cube est déplacé.
@@ -73,8 +73,7 @@ namespace M2MqttUnity.Examples
          */
         public void PublishPosition()
         {
-            //count++;
-            if ((cube != null) && (count % 2 == 0) && (placement_cube.fixe == 2))
+            if ((cube != null) && (placement_cube.fixe == 4))
             {
                 // On calcule la position du cube dans le repère indirect
                 Matrix4x4 m = Matrix4x4.TRS(cube.transform.position, cube.transform.rotation, new Vector3(1, 1, 1));
@@ -101,7 +100,7 @@ namespace M2MqttUnity.Examples
          */
         public void PublishTriedrePosition()
         {
-            if ((count % 2 == 0) && (placement_cube.fixe == 2) && (robot_virtuel.SetJoints == true) && (robot_virtuel.SetTriedre == true))
+            if ((placement_cube.fixe == 4) && (robot_virtuel.SetJoints == true) && (robot_virtuel.SetTriedre == true) && (menu.emplacement == 1))
             {
                 // On envoie la position actuelle des joints
                 JointState joint = new JointState();
@@ -112,10 +111,25 @@ namespace M2MqttUnity.Examples
                 client.Publish("joint_state_virtual", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(position_robot)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
 
                 // On calcule la position du triedre dans le repère indirect
-                Matrix4x4 m = Matrix4x4.TRS(triedre_robot_virtuel.transform.position, triedre_robot_virtuel.transform.rotation, new Vector3(1, 1, 1));
+                Matrix4x4 m = Matrix4x4.TRS(triedre_effecteur.transform.position, triedre_effecteur.transform.rotation, new Vector3(1, 1, 1));
                 Matrix4x4 triedre_robot = placement_cube.mat_monde_robot * m;
                 // Pour le calcul du modèle inverse qui se fait dans la base link avec le flange
-                triedre_robot = triedre_robot * matrices_outils.mat_feutre_tool0;
+                if(menu.outil == 1)
+                {
+                    triedre_robot = triedre_robot * matrices_outils.mat_feutre_tool0;
+                }
+                if (menu.outil == 2)
+                {
+                    triedre_robot = triedre_robot * matrices_outils.mat_cercle20_tool0;
+                }
+                if (menu.outil == 3)
+                {
+                    triedre_robot = triedre_robot * matrices_outils.mat_cercle40_tool0;
+                }
+                if (menu.outil == 4)
+                {
+                    triedre_robot = triedre_robot * matrices_outils.mat_cercle50_tool0;
+                }
                 triedre_robot = triedre_robot * matrices_outils.mat_tool0_flange;
                 triedre_robot = matrices_outils.mat_base_link_base * triedre_robot;
 
@@ -141,6 +155,13 @@ namespace M2MqttUnity.Examples
                 robot_virtuel.SetJoints = true;
                 robot_virtuel.SetTriedre = true;
             }
+        }
+
+        public void PublishOutil()
+        {
+            String choix_outil = menu.nom_outil[menu.outil];
+            String final = "{\"data\":" + "\"" + choix_outil + "\"" + "}";
+            client.Publish("outil", System.Text.Encoding.UTF8.GetBytes(Convert.ToString(final)), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
         }
 
         public void TestPublish()
@@ -311,86 +332,89 @@ namespace M2MqttUnity.Examples
             // On récupère le message et le topic sur lequel il a été publié
             string msg = System.Text.Encoding.UTF8.GetString(message);
             StoreMessage(msg);
-            if (count % 2 == 0)
+            if (topic == "position/mqtt")
             {
-                // On positionne le trièdre de l'effecteur et le trièdre associé au robot virtuel à l'effeteur du robot
-                if (topic == "position/mqtt")
+                // On transforme le message en un objet pour récupérer tous les champs
+                PosRot PositionAndRotation = JsonUtility.FromJson<PosRot>(msg);
+                if ((triedre_effecteur != null) && (placement_cube.fixe == 4))
                 {
-                    // On transforme le message en un objet pour récupérer tous les champs
-                    PosRot PositionAndRotation = JsonUtility.FromJson<PosRot>(msg);
-                    if ((triedre_effecteur != null) && (placement_cube.fixe == 2))
+                    menu.count++;
+
+                    // On récupère les coordonnées envoyées par ROS et on les mets dans le repère indirect de la table
+                    PositionAndRotation.position = new Vector3(PositionAndRotation.position.x, PositionAndRotation.position.z, PositionAndRotation.position.y);
+                    PositionAndRotation.orientation = new Quaternion(-PositionAndRotation.orientation.x, -PositionAndRotation.orientation.z, -PositionAndRotation.orientation.y, PositionAndRotation.orientation.w);
+
+                    // On calcule les coordonnées indirectes dans le repère monde
+                    Matrix4x4 m = Matrix4x4.TRS(PositionAndRotation.position, PositionAndRotation.orientation, new Vector3(1, 1, 1));
+                    Matrix4x4 triedre_monde = placement_cube.mat_robot_monde * m;
+
+                    // On donne les coordonnées à l'objet
+                    if (menu.emplacement == 2)
                     {
-                        // On récupère les coordonnées envoyées par ROS et on les mets dans le repère indirect de la table
-                        triedre_effecteur.transform.position = new Vector3(PositionAndRotation.position.x, PositionAndRotation.position.z, PositionAndRotation.position.y);
-                        triedre_effecteur.transform.rotation = new Quaternion(-PositionAndRotation.orientation.x, -PositionAndRotation.orientation.z, -PositionAndRotation.orientation.y, PositionAndRotation.orientation.w);
-
-                        // On calcule les coordonnées indirectes dans le repère monde
-                        Matrix4x4 m = Matrix4x4.TRS(triedre_effecteur.transform.position, triedre_effecteur.transform.rotation, new Vector3(1, 1, 1));
-                        Matrix4x4 triedre_monde = placement_cube.mat_robot_monde * m;
-
-                        // On donne les coordonnées à l'objet
                         triedre_effecteur.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
                         triedre_effecteur.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
+                    }
                         
-                        // On donne également les coordonnées au trièdre associé au robot virtuel si cela n'a pas déjà été fait
-                        if(((robot_virtuel.SetTriedre == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetTriedre == true) && (robot_virtuel.TrajectoireEnCours == true)))
-                        {
-                            robot_virtuel.triedre_robot_virtuel.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
-                            //Vector3 rot_triedre = triedre_monde.rotation.eulerAngles;
-                            //rot_triedre = new Vector3(rot_triedre.x, rot_triedre.y + 180, rot_triedre.z + 90);
-                            //robot_virtuel.triedre_robot_virtuel.transform.rotation = Quaternion.Euler(rot_triedre);
-                            robot_virtuel.triedre_robot_virtuel.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
-                            // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.
-                            robot_virtuel.SetTriedre = true;
-                        }
+                    // On donne également les coordonnées au trièdre associé au robot virtuel si cela n'a pas déjà été fait
+                    if((((robot_virtuel.SetTriedre == false) && (robot_virtuel.TrajectoireEnCours == false) && (menu.count == 10)) || ((robot_virtuel.SetTriedre == true) && (robot_virtuel.TrajectoireEnCours == true))) && (menu.emplacement == 1))
+                    {
+                        triedre_effecteur.transform.position = new Vector3(triedre_monde[0, 3], triedre_monde[1, 3], triedre_monde[2, 3]);
+                        triedre_effecteur.transform.rotation = new Quaternion(triedre_monde.rotation.x, triedre_monde.rotation.y, triedre_monde.rotation.z, triedre_monde.rotation.w);
+                        // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai. Sinon, le robot trace la trajectoire et on le laisse faire.
+                        robot_virtuel.SetTriedre = true;
                     }
                 }
+            }
 
-                // On récupère la position des Joints du robot réel et on applique ces valeurs au robot virtuel
-                if (topic == "position_robot")
+            // On récupère la position des Joints du robot réel et on applique ces valeurs au robot virtuel
+            if ((topic == "position_robot") && ((placement_cube.fixe == 4) || (placement_cube.fixe == 1)))
+            {
+                // On transforme le message en objet pour récupérer tous les champs
+                JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
+
+                // On donne les positions au robot virtuel se déplaçant en virtuel si cela n'a pas déjà été fait
+                if (((robot_virtuel.SetJoints == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetJoints == true) && (robot_virtuel.TrajectoireEnCours == true)))
+                {
+                    robot_virtuel.UpdatePosition(Joint_State.position);
+
+                    if(menu.emplacement == 1)
+                    {
+                        // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.
+                        robot_virtuel.SetJoints = true;
+                    }   
+                }
+            }
+
+            // On récupère les positions des Joints calculées selon la position de l'effecteur demandée
+            if (topic == "position_robot_virtuel_casque")
+            {
+                // On crée la trajectoire de points
+                if (robot_virtuel.TrajectoireFinie == false)
                 {
                     // On transforme le message en objet pour récupérer tous les champs
                     JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
 
-                    // On donne les positions du robot au robot virtuel
-                    robot_reel.UpdatePosition(Joint_State.position);
-
-                    // On donne les positions au robot virtuel se déplaçant en virtuel si cela n'a pas déjà été fait
-                    if (((robot_virtuel.SetJoints == false) && (robot_virtuel.TrajectoireEnCours == false)) || ((robot_virtuel.SetJoints == true) && (robot_virtuel.TrajectoireEnCours == true)))
+                    // On donne les positions calculées au robot virtuel
+                    robot_virtuel.UpdatePosition(Joint_State.position);
+                    if (validation_trajectoire.SetPremierPoint == true)
                     {
-                        robot_virtuel.UpdatePosition(Joint_State.position);
-                        // Une fois ce placement fait, on ne veut pas que cela soit possible à nouveau, on met la variable à vrai.
-                        robot_virtuel.SetJoints = true;
+                        JointTrajectoryPoint point = new JointTrajectoryPoint();
+                        point.positions = Joint_State.position;
+                        robot_virtuel.point.Add(point);
                     }
                 }
+            }
 
-                // On récupère les positions des Joints calculées selon la position de l'effecteur demandée
-                if (topic == "position_robot_virtuel_casque")
+            // La trajectoire est finie, on peut à nouveau déplacer le trièdre
+            if (topic == "trajectoire_finie")
+            {
+                if(robot_virtuel.TrajectoireEnCours == true)
                 {
-                    // On crée la trajectoire de points
-                    if (robot_virtuel.TrajectoireFinie == false)
-                    {
-                        // On transforme le message en objet pour récupérer tous les champs
-                        JointState Joint_State = JsonUtility.FromJson<JointState>(msg);
-
-                        // On donne les positions calculées au robot virtuel
-                        robot_virtuel.UpdatePosition(Joint_State.position);
-                        if (validation_trajectoire.SetPremierPoint == true)
-                        {
-                            JointTrajectoryPoint point = new JointTrajectoryPoint();
-                            point.positions = Joint_State.position;
-                            robot_virtuel.point.Add(point);
-                        }
-                    }
-                }
-
-                // La trajectoire est finie, on peut à nouveau déplacer le trièdre
-                if (topic == "trajectoire_finie")
-                {
-                    if(robot_virtuel.TrajectoireEnCours == true)
-                    {
-                        validation_trajectoire.FinTrajectoire();
-                    }
+                    robot_virtuel.point.Reverse();
+                    robot_virtuel.trajectoire.points = null;
+                    robot_virtuel.TrajectoireFinie = false;
+                    placement_cube.fixe = 5;
+                    affichage.TrajectoireEnvers();
                 }
             }
         }

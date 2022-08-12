@@ -39,7 +39,7 @@ public class PlacementCube : MonoBehaviour
 
     // Le bouton qui permet de "défixer" le trièdre de la table
     protected GameObject button_fixe;
-    // Les boutons qui permetend de bouger le trièdre de la table
+    // Les boutons qui permettent de bouger le trièdre de la table
     protected GameObject buttons_translation_rotation;
     // Le bouton qui permet de valider la trajectoire du robot
     protected GameObject button_valider_trajectoire;
@@ -47,12 +47,19 @@ public class PlacementCube : MonoBehaviour
     protected GameObject button_premier_point;
     // Le bouton qui permet d'annuler le placement du premier point et la trajectoire tracée
     protected GameObject button_annuler_trajectoire;
+    // Les boutons qui permettent de choisir l'emplacement du robot virtuel
+    protected GameObject buttons_menu_emplacement;
+    // Les boutons qui permettent de choisir l'outil du robot virtuel
+    protected GameObject buttons_menu_outil;
 
-    // Le script qui permet de faire bouger le robot virtuel selon les déplacement du robot réel (nécessaire pour ancrer le robot virtuel à une place précise)
-    public RobotReel robot_reel;
+    // Les boutons qui servent à rejouer ou non la trajectoire
+    protected GameObject buttons_trajectoire_envers;
 
     // Le script qui permet de faire bouger le robot virtuel selon le déplacement de son trièdre/effecteur (nécessaire pour ancrer le robot virtiel à une place précise)
     public RobotVirtuel robot_virtuel;
+
+    // Le script qui nous indique l'emplacement du robot et l'outil sélectionné
+    public Menu menu;
 
     // La matrice de transformation homogène de la table vers le monde et du monde vers la table
     [HideInInspector]
@@ -85,6 +92,9 @@ public class PlacementCube : MonoBehaviour
         button_valider_trajectoire = GameObject.Find("Bouton valider trajectoire");
         button_premier_point = GameObject.Find("Bouton premier point");
         button_annuler_trajectoire = GameObject.Find("Bouton annuler trajectoire");
+        buttons_menu_emplacement = GameObject.Find("Boutons menu emplacement");
+        buttons_menu_outil = GameObject.Find("Boutons menu outil");
+        buttons_trajectoire_envers = GameObject.Find("Rejouer trajectoire");
 
         // Création de la matrice de transformation homogène entre le robot et la table
         mat_robot_table.SetColumn(0, new Vector4(0, 0, 1, 0));
@@ -195,7 +205,7 @@ public class PlacementCube : MonoBehaviour
         }
 
         // On place les boutons de translation de sorte à ce qu'ils soient proches du trièdre de la table et bien orientés pour l'utilisateur
-        else if ((fixe == 1)&&(buttons_translation_rotation != null))
+        else if ((fixe == 1) && (buttons_translation_rotation != null) && (menu.emplacement == 0))
         {
             buttons_translation_rotation.transform.position = pos - directionu1.normalized * 1.0f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
             buttons_translation_rotation.transform.rotation = mat_tablecalib_monde.rotation;
@@ -213,12 +223,23 @@ public class PlacementCube : MonoBehaviour
             // On place les robots virtuels aux positions voulues. On ajoute 90 degrés selon y pour qu'ils sont orientés de la même façon que le robot réel.
             Vector3 rotation = mat_robot_monde.rotation.eulerAngles;
             rotation = new Vector3(rotation.x, rotation.y + 90, rotation.z);
-            robot_virtuel.first.TeleportRoot(new Vector3(mat_robot_monde[0, 3] - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
+            robot_virtuel.first[menu.outil].TeleportRoot(new Vector3(mat_robot_monde[0, 3] - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
+            }
 
+        else if (fixe == 2)
+        {
+            buttons_menu_emplacement.transform.position = pos - directionu1.normalized * 0.55f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
+            buttons_menu_emplacement.transform.rotation = mat_tablecalib_monde.rotation;
         }
 
-        // Le trièdre de la table est fixé en translation. Le positionnement est terminé.
-        else if (fixe == 2)
+        else if (fixe == 3)
+        {
+            buttons_menu_outil.transform.position = pos - directionu1.normalized * 0.55f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
+            buttons_menu_outil.transform.rotation = mat_tablecalib_monde.rotation;
+        }
+
+        // Le trièdre de la table est fixé en translation. Le positionnement est terminé, le choix de l'emplacement du robot est fait.
+        else if (fixe == 4)
         {
             // On calcule la matrice de transformation homogène globale entre le monde et le robot et entre le robot et le monde.
             mat_robot_monde = mat_table_monde * mat_robot_table;
@@ -231,20 +252,33 @@ public class PlacementCube : MonoBehaviour
             // On place les robots virtuels aux positions voulues. On ajoute 90 degrés selon y pour qu'ils sont orientés de la même façon que le robot réel.
             Vector3 rotation = mat_robot_monde.rotation.eulerAngles;
             rotation = new Vector3(rotation.x, rotation.y + 90, rotation.z);
-            robot_reel.first.TeleportRoot(new Vector3(mat_robot_monde[0, 3] + directionu1.normalized.x * 0.5f - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] + directionu1.normalized.y * 0.5f - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] + directionu1.normalized.z * 0.5f - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
-            robot_virtuel.first.TeleportRoot(new Vector3(mat_robot_monde[0, 3] - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
-
-            if ((button_valider_trajectoire != null) && (button_premier_point != null))
+            if(menu.emplacement == 1)
             {
-                button_premier_point.transform.position = pos - directionu1.normalized * 1.0f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
-                button_premier_point.transform.rotation = mat_table_monde.rotation;
+                robot_virtuel.first[menu.outil].TeleportRoot(new Vector3(mat_robot_monde[0, 3] - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
 
-                button_valider_trajectoire.transform.position = pos - directionu1.normalized * 0.9f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
-                button_valider_trajectoire.transform.rotation = mat_table_monde.rotation;
+                if ((button_valider_trajectoire != null) && (button_premier_point != null))
+                {
+                    button_premier_point.transform.position = pos - directionu1.normalized * 1.0f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
+                    button_premier_point.transform.rotation = mat_table_monde.rotation;
 
-                button_annuler_trajectoire.transform.position = pos - directionu1.normalized * 0.8f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
-                button_annuler_trajectoire.transform.rotation = mat_table_monde.rotation;
+                    button_valider_trajectoire.transform.position = pos - directionu1.normalized * 0.9f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
+                    button_valider_trajectoire.transform.rotation = mat_table_monde.rotation;
+
+                    button_annuler_trajectoire.transform.position = pos - directionu1.normalized * 0.8f - directionu2.normalized * 0.1f - normal.normalized * 0.63f;
+                    button_annuler_trajectoire.transform.rotation = mat_table_monde.rotation;
+                }
             }
+            else if (menu.emplacement == 2)
+            {
+                robot_virtuel.first[menu.outil].TeleportRoot(new Vector3(mat_robot_monde[0, 3] + directionu1.normalized.x * 0.5f - directionu2.normalized.x * 0.015f, mat_robot_monde[1, 3] + directionu1.normalized.y * 0.5f - directionu2.normalized.y * 0.015f, mat_robot_monde[2, 3] + directionu1.normalized.z * 0.5f - directionu2.normalized.z * 0.015f), Quaternion.Euler(rotation));
+            }
+        }
+
+        // On demande si on refait la trajectoire à l'envers ou pas
+        else if (fixe == 5)
+        {
+            buttons_trajectoire_envers.transform.position = pos - directionu1.normalized * 0.55f - directionu2.normalized * 0.3f - normal.normalized * 0.63f;
+            buttons_trajectoire_envers.transform.rotation = mat_tablecalib_monde.rotation;
         }
     }
 }

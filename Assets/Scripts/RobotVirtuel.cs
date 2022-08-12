@@ -17,23 +17,24 @@ public class RobotVirtuel : MonoBehaviour
     // Nombre de liaisons du robot du robot comme écrits dans Unity
     const int k_NumRobotJoints = 6;
 
+    public Menu menu;
+
     // Noms des liaisons
     public static readonly string[] LinkNames =
         { "base_link/base_link_inertia/shoulder_link", "/upper_arm_link", "/forearm_link", "/wrist_1_link",  "/wrist_2_link",  "/wrist_3_link"};
 
     // Le robot
     [SerializeField]
-    public GameObject ur3e;
-    public GameObject ur3e_robot { get => ur3e; set => ur3e = value; }
+    public GameObject[] ur3e;
 
     // Le trièdre permettant de déplacer le robot virtuel
-    public GameObject triedre_robot_virtuel;
+    public GameObject triedre_effecteur;
 
     // Les articulations du robot
     public ArticulationBody[] m_JointArticulationBodies;
 
     // L'articulation first qui correspond à la base qui peut se déplacer dans l'espace.
-    public ArticulationBody first;
+    public ArticulationBody[] first;
 
     // Les deux booléens qui permettent de déterminer si les Joints et le trièdre ont été bien placés au début (avant tout déplacement volontaire).
     public bool SetJoints = false;
@@ -59,13 +60,32 @@ public class RobotVirtuel : MonoBehaviour
         {
             linkName += LinkNames[i];
             // On cherche l'articulation et on l'ajoute à la chaîne.
-            m_JointArticulationBodies[i] = ur3e.transform.Find(linkName).GetComponent<ArticulationBody>();
+            m_JointArticulationBodies[i] = ur3e[0].transform.Find(linkName).GetComponent<ArticulationBody>();
         }
 
-        // On cherche la première articulation pour pouvoir ensuite déplacer la base du robot dans l'espace.
-        first = ur3e.transform.Find("base_link/base_link_inertia").GetComponent<ArticulationBody>();
+        // On crée 5 première articulation
+        first = new ArticulationBody[5];
+        for (int j=0; j<ur3e.Length; j++)
+        {
+            // On cherche la première articulation pour pouvoir ensuite déplacer la base du robot dans l'espace.
+            first[j] = ur3e[j].transform.Find("base_link/base_link_inertia").GetComponent<ArticulationBody>();
+        }
 
         trajectoire.joint_names = new string[6] { "elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint" };
+    }
+
+    void Update()
+    {
+        // On crée 6 articulations
+        m_JointArticulationBodies = new ArticulationBody[k_NumRobotJoints];
+
+        var linkName = string.Empty;
+        for (var i = 0; i < k_NumRobotJoints; i++)
+        {
+            linkName += LinkNames[i];
+            // On cherche l'articulation et on l'ajoute à la chaîne.
+            m_JointArticulationBodies[i] = ur3e[menu.outil].transform.Find(linkName).GetComponent<ArticulationBody>();
+        }
     }
 
     /*
@@ -76,9 +96,9 @@ public class RobotVirtuel : MonoBehaviour
      */
     public void UpdatePosition(float[] position)
     {
-        // On attribue au joint 2 sa position.
         if (((SetJoints == false) && (TrajectoireEnCours == false)) || ((SetJoints == true) && (TrajectoireEnCours == true)))
         {
+            // On attribue au joint 2 sa position.
             var joint1XDrive = m_JointArticulationBodies[2].xDrive;
             joint1XDrive.target = (float)position[0] * Mathf.Rad2Deg;
             m_JointArticulationBodies[2].xDrive = joint1XDrive;
@@ -107,10 +127,10 @@ public class RobotVirtuel : MonoBehaviour
             var joint6XDrive = m_JointArticulationBodies[5].xDrive;
             joint6XDrive.target = (float)position[5] * Mathf.Rad2Deg;
             m_JointArticulationBodies[5].xDrive = joint6XDrive;
-            SetJoints = true;
         }
         else
         {
+            // On attribue au joint 2 sa position.
             var joint1XDrive = m_JointArticulationBodies[0].xDrive;
             joint1XDrive.target = (float)position[0] * Mathf.Rad2Deg;
             m_JointArticulationBodies[0].xDrive = joint1XDrive;
@@ -139,7 +159,6 @@ public class RobotVirtuel : MonoBehaviour
             var joint6XDrive = m_JointArticulationBodies[5].xDrive;
             joint6XDrive.target = (float)position[5] * Mathf.Rad2Deg;
             m_JointArticulationBodies[5].xDrive = joint6XDrive;
-            SetJoints = true;
         }
     }
 

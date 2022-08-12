@@ -63,7 +63,6 @@ namespace M2MqttUnity
         /// Wrapped MQTT client
         /// </summary>
         protected MqttClient client;
-        protected GameObject cube;
 
         private List<MqttMsgPublishEventArgs> messageQueue1 = new List<MqttMsgPublishEventArgs>();
         private List<MqttMsgPublishEventArgs> messageQueue2 = new List<MqttMsgPublishEventArgs>();
@@ -175,12 +174,6 @@ namespace M2MqttUnity
         /// </summary>
         protected virtual void Start()
         {
-            cube = GameObject.Find("Cube");
-            Debug.Log("searching");
-            if(cube != null)
-            {
-                Debug.Log("Cube recupéré");
-            }
             if (autoConnect)
             {
                 Connect();

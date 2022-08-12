@@ -7,6 +7,9 @@ public class ValidationTrajectoire : MonoBehaviour
     // Le script contenant les booléens pour l'état de la trajectoire
     public RobotVirtuel robot_virtuel;
 
+    // Le script contenant la variable permettant d'afficher le trièdre de l'effecteur au bon moment
+    public Menu menu;
+
     // Les boutons qui valident ou non la trajectoire
     private GameObject button_valider_trajectoire;
     private GameObject button_premier_point;
@@ -29,7 +32,7 @@ public class ValidationTrajectoire : MonoBehaviour
         robot_virtuel.TrajectoireEnCours = false;
         robot_virtuel.point = new List<JointTrajectoryPoint>();
         robot_virtuel.trajectoire.points = null;
-        robot_virtuel.triedre_robot_virtuel.GetComponent<Collider>().enabled = true;
+        robot_virtuel.triedre_effecteur.GetComponent<Collider>().enabled = true;
         button_valider_trajectoire.SetActive(true);
         button_annuler_trajectoire.SetActive(true);
         button_premier_point.SetActive(false);
@@ -41,7 +44,7 @@ public class ValidationTrajectoire : MonoBehaviour
         {
             robot_virtuel.TrajectoireFinie = true;
             robot_virtuel.trajectoire.points = robot_virtuel.point.ToArray();
-            robot_virtuel.triedre_robot_virtuel.GetComponent<Collider>().enabled = false;
+            robot_virtuel.triedre_effecteur.GetComponent<Collider>().enabled = false;
             button_valider_trajectoire.SetActive(false);
             button_annuler_trajectoire.SetActive(false);
         }
@@ -53,10 +56,11 @@ public class ValidationTrajectoire : MonoBehaviour
         robot_virtuel.TrajectoireEnCours = false;
         robot_virtuel.trajectoire.points = null;
         robot_virtuel.point = new List<JointTrajectoryPoint>();
-        robot_virtuel.triedre_robot_virtuel.GetComponent<Collider>().enabled = true;
+        robot_virtuel.triedre_effecteur.GetComponent<Collider>().enabled = true;
         button_premier_point.SetActive(true);
         robot_virtuel.SetJoints = false;
         robot_virtuel.SetTriedre = false;
+        menu.count = 0;
     }
 
     public void AnnulerTrajectoire()
@@ -65,11 +69,12 @@ public class ValidationTrajectoire : MonoBehaviour
         robot_virtuel.TrajectoireEnCours = false;
         robot_virtuel.trajectoire.points = null;
         robot_virtuel.point = new List<JointTrajectoryPoint>();
-        robot_virtuel.triedre_robot_virtuel.GetComponent<Collider>().enabled = true;
+        robot_virtuel.triedre_effecteur.GetComponent<Collider>().enabled = true;
         button_valider_trajectoire.SetActive(false);
         button_annuler_trajectoire.SetActive(false);
         button_premier_point.SetActive(true);
         robot_virtuel.SetJoints = false;
         robot_virtuel.SetTriedre = false;
+        menu.count = 0;
     }
 }

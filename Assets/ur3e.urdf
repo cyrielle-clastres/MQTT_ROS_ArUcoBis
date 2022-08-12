@@ -270,23 +270,6 @@
       <inertia ixx="0.00013626661216" ixy="0.0" ixz="0.0" iyy="0.00013626661216" iyz="0.0" izz="0.0001792"/>
     </inertial>
   </link>
-  <link name="feutre_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 -0.166"/>
-      <geometry>
-        <mesh filename="package://ur_description/meshes/ur3e/visual/feutre.dae"/>
-      </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 -0.166"/>
-      <geometry>
-        <mesh filename="package://ur_description/meshes/ur3e/collision/feutre.stl"/>
-      </geometry>
-    </collision>
-  </link>
   <!-- joints: main serial chain -->
   <joint name="base_link-base_link_inertia" type="fixed">
     <parent link="base_link"/>
@@ -372,12 +355,6 @@
     <origin rpy="1.57079632679 0 1.57079632679" xyz="0 0 0"/>
     <parent link="flange"/>
     <child link="tool0"/>
-  </joint>
-  <!-- OUTIL : FEUTRE -->
-  <joint name="tool0-feutre" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0.166"/>
-    <parent link="tool0"/>
-    <child link="feutre_link"/>
   </joint>
 </robot>
 
